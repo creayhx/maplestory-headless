@@ -15,7 +15,7 @@ target\release\openstory-bot.exe --ip <ip> --port 8484 --account <acc> --passwor
 > `--aes-key`：改密钥的服务端用——8 字节密钥（16 位 hex，如 `130A06B41B0F3352`，运行时自动展开）或 256 字节预展开表（512 位 hex）；从客户端提取 + 探针验证见 `examples/keyfind.rs` / `examples/probe.rs`。`--charlist-only`：登录到角色列表即停、不进图。
 
 > **Web 配置编辑器（独立程序，可选）**：`cargo build --release -p openstory-webui` 后运行
-> `target\release\openstory-webui.exe [--port 8080] [--config config.json]`，浏览器内编辑
+> `target\release\openstory-web.exe [--port 8080] [--config config.json]`，浏览器内编辑
 > config.json（按 bot 配置结构校验后原子写入；运行中的 bot 需 `reload` 或重启后生效）。
 
 ### 远端测试服务器

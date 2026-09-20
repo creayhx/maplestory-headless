@@ -152,7 +152,7 @@ target\release\openstory-bot.exe --config profiles\<服>_<账号>.json ^
 ### 方式三：Web 配置编辑器（独立程序，可选）
 
 ```bash
-target\release\openstory-webui.exe     # http://127.0.0.1:8080，编辑当前目录 config.json
+target\release\openstory-web.exe       # http://127.0.0.1:8080，编辑当前目录 config.json
 ```
 
 浏览器内以表单 + JSON 双视图编辑配置，保存时按 bot 的配置结构校验并原子写入。

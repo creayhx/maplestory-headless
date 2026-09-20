@@ -86,8 +86,8 @@ target\release\openstory-bot.exe --ip <ip> --port 8484 --account <acc> --passwor
 
 ### Web 配置编辑器（独立程序，`crates/webui`）
 ```bash
-cargo build --release -p openstory-web
-target\release\openstory-webui.exe [--port 8080] [--config config.json] [--dir <页面目录>]
+cargo build --release -p openstory-webui
+target\release\openstory-web.exe [--port 8080] [--config config.json] [--dir <页面目录>]
 ```
 浏览器内编辑 config.json（表单 + JSON 视图），保存时按 bot 的 `RuntimeConfig` 架构校验后原子写入；
 与 bot 完全解耦（独立进程、无内嵌构建、无进程内关联），运行中的 bot 需 `reload` 或重启后生效。
