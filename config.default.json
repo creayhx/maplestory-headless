@@ -1,0 +1,256 @@
+{
+  "_说明": "openstory-bot 完整配置模板。复制本文件为 config.json 使用(或作为 profiles/<服>_<账号>.json 档案)。所有以 _ 开头的键是注释说明, 程序读取时自动忽略。顶层与各子对象的全部可用 key 都在下面有示例。详细文档见 docs/CONFIG.md; 谓词/命令速查见文末 _谓词参考 与 _命令参考。",
+  "_说明2": "运行期命令(如 hunt range 300)只改内存值不写回文件; hunt save 只把 hunt 一节写回当前档案; reload 重读文件(运行期开关复位为文件值)。密码永不写盘: 向导提交后只回写 ip/port/account/aes_key, 密码每次启动手输或 --password 显式传。档案可用 \"include\": [\"库文件.json\"] 显式引入通用规则/任务(相对本文件, 可多个, 不写就不叠加); rules/tasks/groups 跨层按 id 合并——同 id 只覆盖写出的字段, enabled:false 禁用继承项。",
+
+  "login": {
+    "_说明": "登录信息(TUI 向导预填来源; headless CLI 凭据必须显式传参)。password 键可读但永不序列化回写; aes_key 仅改过密钥的服需要: 16 位 hex(8字节密钥自动扩展)或 512 位 hex(256字节轮密钥表), 缺省=标准冒险岛密钥。",
+    "ip": "",
+    "_ip": "登录服务器地址, 如 127.0.0.1",
+    "port": 8484,
+    "_port": "登录端口, 默认 8484",
+    "account": "",
+    "_account": "账号名(密码绝不入库)"
+  },
+
+  "tick_ms": 50,
+  "_tick_ms": "主循环 tick 周期毫秒: 默认 50(20 tick/s); 规则引擎/任务步进/打怪节奏都随它加速。压测可调小(如 10 或 1); cooldown=0 的规则每 tick 至多触发一次, 所以 tick_ms 就是发包频率上限",
+
+  "potion_cooldown": 800,
+  "_potion_cooldown": "喝药冷却毫秒: 任意两次喝药的最小间隔",
+
+  "reconnect": true,
+  "_reconnect": "断线/连接失败自动重连(静默重登, 复用记忆的世界/频道/角色与内存配置)。重连使用的是内存中的配置——运行期改动(rule open/hunt 参数等)全部保留, 不重读文件",
+  "reconnect_delay": 5,
+  "_reconnect_delay": "重连间隔秒(角色登出需几秒, 太短会被拒'账号已在游戏中')",
+  "reconnect_max": 30,
+  "_reconnect_max": "最大连续重连次数, 超过则结束会话(TUI 回向导); 0=无限重试",
+
+  "chat_admins": [],
+  "_chat_admins": "游戏内密语控制白名单(角色名列表): 这些人密语 '#指令' 可控制 bot。CLI --chat-admin 会合并进来; 保持空=功能关闭",
+
+  "potion": [
+    {
+      "_说明": "PotionRule 全部 key: stat(hp|mp) / threshold_pct(百分比) / itemids(药水 itemid 优先级列表, 依次用第一个有库存的)。血量药水示例: 血量低于 25% 时按顺序喝",
+      "stat": "hp",
+      "threshold_pct": 25,
+      "itemids": []
+    },
+    {
+      "_说明": "蓝量药水示例: MP 低于 50%。itemids 使用时填入如 [2000002, 2000000](烤鳗鱼先于橙药水)",
+      "stat": "mp",
+      "threshold_pct": 50,
+      "itemids": []
+    }
+  ],
+
+  "rules": [
+    {
+      "_说明": "Rule 全部 key: id(唯一标识) / enabled(默认 false, 零副作用) / when(谓词, 见 _谓词参考) / then(动作命令列表, 见 _命令参考, 顺序执行) / cooldown(触发后最小间隔毫秒)。规则每 tick 检查一次 when; 运行期用 rule open/close <id> 开关(reload 后复位为文件值)",
+      "id": "trade_auto_accept",
+      "enabled": false,
+      "when": "trade_invite==1 && task_active==0",
+      "then": [
+        "trade accept"
+      ],
+      "cooldown": 1000
+    },
+    {
+      "_说明": "多条件组合示例: && 且 / || 或 可串联; 背包装满自动跑卖装任务(bf_sell 需自行定义或删除本条)",
+      "id": "autosell_full",
+      "enabled": false,
+      "when": "task_active==0 && equips>=90",
+      "then": [
+        "task start autosell_equip",
+        "sleep 1",
+        "shop leave"
+      ],
+      "cooldown": 30000
+    },
+    {
+      "_说明": "防陌生人下线示例: 同图出现非队友玩家直接断开(quit 动作可直接下线)",
+      "id": "evade_stranger",
+      "enabled": false,
+      "when": "players>=1",
+      "then": [
+        "quit"
+      ],
+      "cooldown": 5000
+    }
+  ],
+
+  "tasks": [
+    {
+      "_说明": "TaskDef 全部 key: id / priority(数字越大越优先抢锁) / steps(步骤列表) / timeout(单步默认超时毫秒, 步骤无自身 timeout 时生效; null=不限) / vars(变量表: 启动时对每个步骤的 cmd/wait 做 {key} 替换, 先于状态占位符) / loop(true=循环任务, 跑完自动从头再来并保持持锁; false=跑完释放锁)",
+      "id": "example_open_shop",
+      "priority": 10,
+      "steps": [
+        {
+          "_说明": "Step 全部 key: cmd(命令字符串, 同 _命令参考) / wait(进入本步前要等谓词成立; null=立即) / timeout(wait 等待超时毫秒, 超时跳过本步; null=用任务级 timeout)",
+          "cmd": "auction",
+          "wait": null,
+          "timeout": 5000
+        },
+        {
+          "cmd": "npc reply 2",
+          "wait": "dialog==1",
+          "timeout": 5000
+        },
+        {
+          "cmd": "sleep 0",
+          "wait": "shop_open==1",
+          "timeout": 5000
+        }
+      ],
+      "timeout": 10000,
+      "vars": {},
+      "loop": false
+    },
+    {
+      "_说明": "vars 变量用法示例: {box} 在启动时被替换成 vars.box 的值——同一份流程模板配不同参数即可复用(如开不同箱子)",
+      "id": "example_reward_box",
+      "priority": 5,
+      "steps": [
+        {
+          "cmd": "reward {box}",
+          "wait": null,
+          "timeout": null
+        }
+      ],
+      "timeout": null,
+      "vars": {
+        "box": "2022552"
+      },
+      "loop": false
+    }
+  ],
+
+  "groups": [
+    {
+      "_说明": "GroupDef 全部 key: id / enabled(总开关, 必须 false 保证零副作用; group open/close <id> 运行期切换, reload 复位) / exclusive(互斥: 开启时自动关掉其他互斥组) / rules(组内规则: 组开着才参与引擎, 组内单条 enabled 被忽略) / tasks(组内任务: 仅 task start 可启动且需组开启)",
+      "id": "example_group",
+      "enabled": false,
+      "exclusive": true,
+      "rules": [],
+      "tasks": []
+    },
+    {
+      "_说明": "boss 循环模板(范本级): 把打 boss 拆成 进门→召唤→打怪→拾取→退出 五个规则, 全用规则内嵌 wait 跨 tick 等待条件成立, 不靠 1ms tick 抢跑。enabled 默认 false, 用 group open boss_example 开启; reload 复位。地图/传送点/NPC id/变量名都是示例, 改成你的 boss 即可。要点: ①每个 wait 规则 when 都带 task_active==0(持锁期间规则不重触发); ②纯 wait 门超时=放弃整段, cd 后自动重试(不会没召唤成功就标记); ③本组无 tasks, 全部流程靠规则动作的 wait 内联展开, 是最新推荐写法。",
+      "id": "boss_example",
+      "enabled": false,
+      "exclusive": true,
+      "rules": [
+        {
+          "_说明": "进门: 先清 boss_summoned 标记, 传送进图(ports in00 走入口传送点), 再等 mapid 真正同步成 boss 房——避免没进图就触发召唤。wait 前的前置动作(setvar/ports)在本次触发立即执行, 进图等待由 wait 步骤跨 tick 完成。",
+          "id": "boss_enter",
+          "enabled": true,
+          "when": "mapid==220080000 && dialog==0 && task_active==0",
+          "then": [
+            "setvar boss_summoned 0",
+            "ports in00",
+            "wait mapid==220080001 5000"
+          ],
+          "cooldown": 1500
+        },
+        {
+          "_说明": "召唤: 规则内嵌 wait 把整串变成任务步骤。先等放置物数据下发(reactors>0, 进房后服务端才推), 再打放置物, 再等 boss 真出现(mobs>0)才置 boss_summoned=1。任一步 5s 超时=放弃整段, 2s cd 后整体重试——不会出现没召唤成功就标记。",
+          "id": "boss_summon",
+          "enabled": true,
+          "when": "mapid==220080001 && mobs==0 && var==boss_summoned:0 && dialog==0 && task_active==0",
+          "then": [
+            "wait reactors>0 5000",
+            "reactor hit all",
+            "wait mobs>0 5000",
+            "setvar boss_summoned 1"
+          ],
+          "cooldown": 2000
+        },
+        {
+          "_说明": "打怪: 不受任务锁影响(本规则无 wait, 直接 hunt once), 每 tick 发一次单次攻击, 实际节奏由 attack_cooldown 把关(cd 写 1 即可)。boss 活着时持续触发。",
+          "id": "boss_fight",
+          "enabled": true,
+          "when": "mapid==220080001 && mobs>0 && dialog==0",
+          "then": [
+            "hunt once"
+          ],
+          "cooldown": 1
+        },
+        {
+          "_说明": "拾取: boss 死后掉落落地即扫。捡不起的靠 hunt pickup_range=0(全图)自动放弃兜底, 不会卡锁。带 task_active==0 防与退出流程抢锁; drops>0 保证有掉落才触发。",
+          "id": "boss_pickup",
+          "enabled": true,
+          "when": "mapid==220080001 && mobs==0 && drops>0 && dialog==0 && task_active==0",
+          "then": [
+            "pickup all"
+          ],
+          "cooldown": 200
+        },
+        {
+          "_说明": "退出: 已召唤(boss_summoned==1)才退, 防未召唤误触。对话(npc 2041025)→等弹窗(dialog==1)→确认(npc yes)→等真正出图(mapid 回出口)才结束整段。npcs>0 确保 NPC 在场; 任一步 5s 超时=放弃, 规则重试。",
+          "id": "boss_exit",
+          "enabled": true,
+          "when": "mapid==220080001 && mobs==0 && var==boss_summoned:1 && npcs>0 && dialog==0 && task_active==0",
+          "then": [
+            "npc 2041025",
+            "wait dialog==1 5000",
+            "npc yes",
+            "wait mapid==220080000 5000"
+          ],
+          "cooldown": 1500
+        }
+      ],
+      "tasks": []
+    }
+  ],
+
+  "hunt": {
+    "_说明": "打怪行为参数：攻击方式(hunt attack/skill)、攻击范围(hunt range)、拾取(hunt pickup)各自独立配置，最后 hunt on 开始。技能相关默认全 0 = 未配置（纯普攻），程序不内置任何职业技能。移动方式固定 teleport。角色能获取怪控制权(默认只打/只拉 aggro 怪)时，本套默认参数即可稳定挂机。本节整体由 hunt save 写回当前档案（含 damage）",
+    "damage": 0,
+    "_damage": "攻击包上报伤害(hunt damage <n>): 0=按等级公式估算(lvl²/2); >0=固定值。服务端校验上报伤害对比面板实际伤害, 偏高会触发'检测到异常行为'掉线; 固定为角色真实伤害区间内最稳",
+    "attack_mode": "attack",
+    "_attack_mode": "攻击方式：attack=普攻（攻击范围内每只怪各发一个普攻包）；skill=技能（配合 attack_skill，id=0 即无技能群发：单包多目标、服务端按普攻逐目标处理、不读技能属性）。hunt attack / hunt skill 设置",
+    "attack_max_targets": 1,
+    "_attack_max_targets": "普攻模式攻击范围内最大发包数量（每怪一包）：默认 1；15 是协议上限，写太大在服务器可能被检测",
+    "attack_skill": 0,
+    "_attack_skill": "攻击技能 id（hunt skill 设置）：0=无技能群发（不读技能属性：不扣 MP、无冷却，段数/伤害任意）；>0=技能 id（配合 range/max_targets/mp_cost）",
+    "attack_skill_hits": 1,
+    "_attack_skill_hits": "技能每目标命中段数（hunt hits 设置）：如群攻技能 2 段 = 每目标发 2 个伤害值（每段独立在伤害范围内取值，如 1200 上限即每段 1080~1200）；默认 1；上限 15",
+    "attack_skill_range": 0,
+    "_attack_skill_range": "技能筛怪范围 px：技能模式下优先于攻击范围；0=未配置（用攻击范围）",
+    "attack_skill_max_targets": 0,
+    "_attack_skill_max_targets": "技能包最大目标数：0=未配置（用 1 兜底，单目标）",
+    "attack_skill_mp_cost": 0,
+    "_attack_skill_mp_cost": "技能消耗 MP：施放前检查，MP 不足则不发包；0=不检查",
+    "until": null,
+    "_until": "谓词满足时自动停止打怪（如 equips>=24）；null=不自动停",
+    "teleport_delay": 0,
+    "_teleport_delay": "瞬移冷却毫秒（teleport 模式下两次传送的最小间隔）",
+    "attack_cooldown": 600,
+    "attack_controller_only": true,
+    "_attack_controller_only": "是否只攻击有控制权的怪（0xF0 aggro=1 下发的 controller 怪）：默认 true；多人同图分走控制权、或服务器不下发控制权导致打不了时设 false 攻击所有怪",
+    "attack_range": 300,
+    "_attack_cooldown": "攻击冷却毫秒：两次攻击包的最小间隔。",
+    "_attack_range": "攻击距离 px（hunt range 设置）：怪距人物小于等于此值才发攻击包；实测 300 稳定。更远的先传送/吸怪靠近再打",
+    "pickup_enabled": true,
+    "_pickup_enabled": "是否拾取掉落：false=不捡（纯打怪测速/省包）",
+    "pickup_filter_mode": "off",
+    "_pickup_filter_mode": "拾取过滤模式: off=不过滤(默认) / allow=只捡 pickup_allow 清单 / deny=不捡 pickup_deny 清单。运行期用 hunt filter 切换; 金币(meso)恒捡不受影响",
+    "pickup_allow": [],
+    "_pickup_allow": "仅拾取清单(itemid 数组): pickup_filter_mode=allow 时只捡这些物品",
+    "pickup_deny": [],
+    "_pickup_deny": "仅过滤清单(itemid 数组): pickup_filter_mode=deny 时除了这些物品都捡。改配置后 reload 生效(已在地上但被拒绝的掉落立即清出状态)",
+    "pickup_range": 400,
+    "gather_step": 150,
+    "_gather_step": "吸怪每步距离 px（gather step）：0 = 直接拉到人物坐标；默认 150（单步位移 150 是对于有检测的服务端的规避）",
+    "gather_interval": 1500,
+    "_gather_interval": "吸怪轮次间隔毫秒（gather interval）：每轮最多移动 gather_max 只怪；",
+    "gather_max": 10,
+    "_gather_max": "每轮最多拉怪数（gather max）：0=不限；",
+    "reactor_cooldown": 0,
+    "_reactor_cooldown": "放置物攻击轮次间隔毫秒（reactor cooldown）：0=每 tick 全打一遍；服务器对包频率敏感时调大（如 1000=每秒一轮），只门控 reactor 命中包，掉落拾取仍每 tick 全捡",
+    "_pickup_range": "拾取半径 px（以人物为圆心的圆形范围）：数值如 400/500；0=全图拾取"
+  },
+
+  "_谓词参考": "用于 rule.when / task.steps[].wait / hunt.until。格式: 键 运算符 值, 支持 && (且) 和 || (或) 组合, always=恒真。【布尔键】hunt(挂机中) hunt_reactor(放置物挂机中) shop_open(商店开着) dialog(NPC对话框开着) trade_invite(收到交易邀请) trade_active(交易进行中) trade_partner_locked(对方已锁定) trade_locked(我方已锁定) task_active(任务栈非空); 用法 ==1 或 ==0, 裸键等价 ==1。【数值键】hp_pct mp_pct(百分比0~100) hp mp ap(剩余AP点) sp(剩余SP点) meso(金币) level equips(背包装备栏件数) equips_worn(已穿戴件数) players(同图非队友人数) mapid(当前地图ID); 运算符 < <= > >= ==, 右值可以是数字也可以是另一个数值键(如 hp_pct>=hp_pct 不实用但语法支持)【特殊】npc==<npcid>: 当前地图存在该 NPC(进图时由 SPAWN_NPC 填充)。示例: 'shop_open==1', 'meso>=10000000', 'trade_invite==1 && task_active==0'",
+
+  "_命令参考": "rule.then 与 task.steps[].cmd 可用的全部命令(同 stdin/TUI 输入框)。【移动/战斗】move <x> [y] | attack <oid> | hunt on|off|attack [n]|skill <id> [n] [range] [mp]|hits <n>|atkcd <ms>|range <px>|pickup on|off|damage <n>|controller on|off|stand on|off|status|save | gather on|off|step <px>|interval <ms>|max <n>|controller on|off | pickup all | reactor on|off|hit <oid>|cooldown <ms> | channel <n>(1起)【物品】use <itemid> | reward <itemid>(开盒子) | drop <itemid> [qty] [slot <n>] | dropmeso <金额> | scroll <卷轴id> <装备id> [bless](祝福保护) | equip <itemid> | unequip <itemid> | sell <itemid> [qty] 或 sell tab <equip|consume|etc>(整栏卖) | buy <itemid> [qty] | sellammo(清空弹药) | ap <str|dex|int|luk|maxhp|maxmp> [点数]【NPC/商店/脚本】auction(打开拍卖行, 后接 npc reply 续对话) | npc <oid>(对话) | npc yes|no|next|prev|cancel | npc reply <选项id> | npc num <数值> | npc text <内容> | shop leave(关店; 裸 leave 同义) | reenter(重进当前图)【地图/任务】town <mapid> [传送点名](默认sp) | ports [传送点名] | task run|start <id> | task stop | task status【组队/交易】party create|invite <名>|invitecid <cid>|leave|kick <名>|kickcid <cid> | trade invite <名>|accept|confirm|decline|quit|put <itemid> [qty]|meso <金额>【技能】skill learn <id> | skill cast <id> <oid> | skill info <id> | buff <skillid> | buff cancel <skillid> | keymap set <键码> <类型> <动作>【商城】cashshop enter|list|buy <sn> [nx|points]|get [uniqueid]|store <uniqueid>|out【系统】sleep <秒> | chat <消息> | rule open|close <id> | group open|close <id>(即 run|stop) | reload(重读配置文件) | view player|mobs|inventory|skills|equips|party|trade|ap|reactor|keymap|cashshop | quit(优雅下线)"
+}

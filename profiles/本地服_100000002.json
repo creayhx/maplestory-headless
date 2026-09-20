@@ -1,0 +1,97 @@
+{
+  "data_dir": "data/server_a",
+  "chat_admins": [],
+  "groups": [
+    "_":"全自动闹钟"
+    {
+      "enabled": false,
+      "exclusive": true,
+      "id": "paplatus",
+      "rules": [
+        {
+          "cooldown": 500,
+          "enabled": true,
+          "id": "boss_enter",
+          "then": [
+            "warp in00",
+            "setvar done 0"
+          ],
+          "when": "mapid==220080000 && task_active==0"
+        },
+        {
+          "cooldown": 1000,
+          "enabled": true,
+          "id": "boss_fight",
+          "then": [
+            "wait reactors>0 5000",
+            "reactor hit all",
+            "while mobs>0 do hunt once",
+            "wait drops>0 5000",
+            "pickup all",
+            "setvar done 1"
+          ],
+          "when": "mapid==220080001 && dialog==0 && task_active==0 && var==done:0"
+        },
+        {
+          "cooldown": 500,
+          "enabled": true,
+          "id": "boss_exit",
+          "then": [
+            "npc 2041025",
+            "wait dialog==1 5000",
+            "npc yes",
+            "wait mapid==220080000 5000",
+            "setvar done 0"
+          ],
+          "when": "mapid==220080001 && dialog==0 && task_active==0 && var==done:1"
+        }
+      ],
+      "tasks": []
+    }
+  ],
+  "hunt": {
+    "attack_controller_only": true,
+    "attack_cooldown": 5,
+    "attack_max_targets": 6,
+    "attack_mode": "skill",
+    "attack_range": 300,
+    "attack_skill": 0,
+    "attack_skill_hits": 15,
+    "attack_skill_max_targets": 15,
+    "attack_skill_mp_cost": 0,
+    "attack_skill_range": 0,
+    "damage": 199999,
+    "gather_interval": 500,
+    "gather_max": 0,
+    "gather_step": 0,
+    "pickup_allow": [],
+    "pickup_deny": [],
+    "pickup_enabled": true,
+    "pickup_filter_mode": "off",
+    "pickup_range": 0,
+    "reactor_cooldown": 0,
+    "strange_report": true,
+    "teleport_delay": 0,
+    "until": null
+  },
+  "login": {
+    "account": "100000002",
+    "ip": "127.0.0.1",
+    "port": 8484
+  },
+  "potion": [],
+  "rules": [
+    {
+      "_说明": "来人下线：同图出现非队友玩家立即断开(重连后继续)",
+      "id": "evade",
+      "enabled": false,
+      "when": "players>=1",
+      "then": [
+        "quit"
+      ],
+      "cooldown": 100
+    }
+  ],
+  "tasks": [],
+  "tick_ms": 1
+}

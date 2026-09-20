@@ -1,0 +1,18 @@
+[package]
+name = "openstory-resource"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "MapleStory WZ data exporter — extracts string tables and portal data from client files"
+publish = false
+
+[dependencies]
+wz_reader = "0.0.10"
+rayon = "1.7"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+
+[[bin]]
+name = "openstory-resource"
+path = "src/main.rs"

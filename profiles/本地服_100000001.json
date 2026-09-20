@@ -1,0 +1,70 @@
+{
+  "chat_admins": [],
+  "data_dir": "data/server_a",
+  "groups": [
+    {
+      "enabled": false,
+      "exclusive": true,
+      "id": "local_a",
+      "rules": [
+        {
+          "cooldown": 0,
+          "enabled": false,
+          "id": "marker_local_a",
+          "then": [
+            "chat 本地A档案已加载"
+          ],
+          "when": "always"
+        }
+      ],
+      "tasks": []
+    }
+  ],
+  "hunt": {
+    "attack_controller_only": true,
+    "attack_cooldown": 5,
+    "attack_max_targets": 6,
+    "attack_mode": "skill",
+    "attack_range": 300,
+    "attack_skill": 0,
+    "attack_skill_hits": 1,
+    "attack_skill_max_targets": 15,
+    "attack_skill_mp_cost": 0,
+    "attack_skill_range": 0,
+    "damage": 0,
+    "gather_interval": 500,
+    "gather_max": 0,
+    "gather_step": 0,
+    "pickup_allow": [
+      4000000
+    ],
+    "pickup_deny": [],
+    "pickup_enabled": true,
+    "pickup_filter_mode": "allow",
+    "pickup_range": 400,
+    "reactor_cooldown": 0,
+    "strange_report": true,
+    "teleport_delay": 0,
+    "until": null
+  },
+  "login": {
+    "account": "100000001",
+    "ip": "127.0.0.1",
+    "port": 8484
+  },
+  "potion": [],
+  "rules": [
+    {
+      "_说明": "来人下线：同图出现非队友玩家立即断开(重连后继续)",
+      "id": "evade",
+      "enabled": false,
+      "when": "players>=1",
+      "then": [
+        "quit"
+      ],
+      "cooldown": 100
+    }
+  ],
+  "tasks": [],
+  "tick_ms": 50
+}

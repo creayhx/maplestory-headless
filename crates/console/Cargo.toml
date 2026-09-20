@@ -1,0 +1,37 @@
+[package]
+name = "openstory-console"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "冒险岛风格终端控制台: 一个进程内管理多个 bot 账号 (日志流 / 状态面板 / 指令输入 / 手动启停)"
+
+# 实现全部在 src/lib.rs; 两个入口都只是 `openstory_console::run()` 的转发。
+#
+# 曾经两个入口都指向 `src/main.rs`, 后果是: 源码被**编译两遍**, cargo 对每条
+# 命令打一条 `found to be present in multiple build targets` 警告, 而且 main.rs
+# 里的单元测试会各跑一遍 —— 其中几条真的登录本地服, 于是同一账号被登两次。
+[[bin]]
+name = "openstory-console"
+path = "src/main.rs"
+
+# 兼容入口: 老命令行 / 快捷方式 / 文档里写的是 `openstory-tui`。
+#
+# 不是转发脚本 (多一个进程, 且二进制被改名/挪走时会静默失效), 而是**同一个
+# 函数的第二个入口** —— 与上面共用同一份编译产物, 行为由编译器保证一致。
+#
+# 去掉它: 删掉这个 `[[bin]]` 和 `src/bin/tui.rs`。
+[[bin]]
+name = "openstory-tui"
+path = "src/bin/tui.rs"
+
+[dependencies]
+openstory-bot = { path = "../.." }
+openstory-console-lib = { path = "../console-lib" }
+ratatui = "0.29"
+crossterm = "0.28"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+unicode-width = "0.2"
+regex = "1"
+serde_json = "1"
+serde = { version = "1", features = ["derive"] }
